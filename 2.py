@@ -32,7 +32,7 @@ app.add_middleware(
 # Cấu hình API Roboflow
 PROJECT_ID = "tk-3d-cq49s-1j4v5"  # Project ID từ data.yaml
 VERSION = "1"  # Version từ data.yaml  
-API_KEY = os.getenv("ROBOFLOW_API_KEY")  
+API_KEY = "D0z8HBtVSIXIYX0bKrUR" 
 # API endpoint configuration
 BASE_URL = "https://detect.roboflow.com"
 
