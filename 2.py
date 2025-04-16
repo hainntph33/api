@@ -433,3 +433,151 @@ async def process_image_url(
                 "all_predictions": []
             }
         )
+
+# MỚI: API endpoint để xử lý ảnh từ base64
+@app.post("/process_base64")
+async def process_image_base64(
+    image_base64: str = Form(...),
+    captcha_offset_x: int = Form(None),
+    captcha_offset_y: int = Form(None)
+):
+    try:
+        # Giải mã base64 thành dữ liệu nhị phân
+        try:
+            # Xử lý trường hợp có tiền tố "data:image/..."
+            if "base64," in image_base64:
+                image_base64 = image_base64.split("base64,")[1]
+            
+            image_data = base64.b64decode(image_base64)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Không thể giải mã base64: {str(e)}")
+        
+        # Tạo file tạm để lưu ảnh
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            temp_file.write(image_data)
+            temp_file_path = temp_file.name
+        
+        # Xử lý ảnh
+        result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
+        
+        # Xóa file tạm sau khi xử lý
+        os.unlink(temp_file_path)
+        
+        return result
+    
+    except Exception as e:
+        # Xử lý lỗi
+        return JSONResponse(
+            status_code=500,
+            content={
+                "lỗi": str(e),
+                "chi_tiết": "Lỗi trong quá trình xử lý ảnh từ base64",
+                "duplicate_characters": {},
+                "duplicates": [],
+                "all_predictions": []
+            }
+        )
+
+# MỚI: API endpoint để xử lý blob URL
+@app.get("/process_blob/{blob_url:path}")
+async def process_blob_url(
+    blob_url: str,
+    captcha_offset_x: int = None,
+    captcha_offset_y: int = None
+):
+    return JSONResponse(
+        status_code=400,
+        content={
+            "lỗi": "Không thể xử lý trực tiếp blob URL",
+            "giải_pháp": "Blob URL là URL chỉ có thể truy cập từ trình duyệt. Bạn nên sử dụng JavaScript để tải blob URL, chuyển đổi thành base64, sau đó gọi API /process_base64",
+            "hướng_dẫn": "Xem ví dụ JavaScript tại phần comments của API",
+            "duplicate_characters": {},
+            "duplicates": [],
+            "all_predictions": []
+        }
+    )
+
+# MỚI: HTML helper endpoint với hướng dẫn
+@app.get("/helper")
+async def helper_page():
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>CAPTCHA Analysis API Helper</title>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+            pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow: auto; }
+            h2 { margin-top: 30px; }
+        </style>
+    </head>
+    <body>
+        <h1>CAPTCHA Analysis API Helper</h1>
+        
+        <h2>Xử lý Blob URL</h2>
+        <p>Để xử lý blob URL từ trình duyệt, bạn cần thực hiện các bước sau:</p>
+        
+        <pre>
+// JavaScript để xử lý Blob URL
+async function processCaptcha(blobUrl) {
+    // Tải blob URL
+    const response = await fetch(blobUrl);
+    const blob = await response.blob();
+    
+    // Chuyển đổi blob thành base64
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    
+    return new Promise((resolve, reject) => {
+        reader.onloadend = async () => {
+            try {
+                const base64Data = reader.result;
+                
+                // Gửi đến API
+                const formData = new FormData();
+                formData.append('image_base64', base64Data);
+                
+                const apiResponse = await fetch('https://api-4-3y29.onrender.com/process_base64', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await apiResponse.json();
+                resolve(result);
+            } catch (error) {
+                reject(error);
+            }
+        };
+        
+        reader.onerror = reject;
+    });
+}
+
+// Sử dụng
+processCaptcha("blob:https://www.tiktok.com/41031d94-2563-4609-bdd2-a2af28663add")
+    .then(result => console.log(result))
+    .catch(error => console.error(error));
+        </pre>
+        
+        <h2>Các endpoints có sẵn</h2>
+        <ul>
+            <li><code>/</code> - Trang chào mừng</li>
+            <li><code>/health</code> - Kiểm tra trạng thái API</li>
+            <li><code>/process</code> - Xử lý ảnh từ file upload</li>
+            <li><code>/process_url</code> - Xử lý ảnh từ URL công khai</li>
+            <li><code>/process_base64</code> - Xử lý ảnh từ chuỗi base64</li>
+            <li><code>/helper</code> - Trang hướng dẫn này</li>
+        </ul>
+    </body>
+    </html>
+    """
+    
+    return HTMLResponse(content=html_content, status_code=200)
+
+# Thêm import cần thiết cho HTMLResponse
+from fastapi.responses import HTMLResponse
+
+# Chạy server khi file được thực thi trực tiếp
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
