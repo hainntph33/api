@@ -123,9 +123,7 @@ def analyze_image_with_roboflow(image_path):
             response = requests.post(
                 url, 
                 params={
-                    'api_key': API_KEY,
-                    'confidence': 40,  # Ngưỡng confidence
-                    'format': 'json'   # Định dạng trả về
+                    'api_key': API_KEY
                 },
                 data=encoded_image,
                 headers={
@@ -145,7 +143,7 @@ def analyze_image_with_roboflow(image_path):
             
     except Exception as e:
         raise Exception(f"Lỗi khi xử lý file ảnh: {e}")
-         
+            
 def process_image(image_path, captcha_offset_x=None, captcha_offset_y=None):
     try:
         # Sử dụng giá trị tính toán từ biến toàn cục nếu không có offset được chỉ định
