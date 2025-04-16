@@ -9,8 +9,25 @@ import sys
 from collections import defaultdict
 from dotenv import load_dotenv
 import os
+import tempfile
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+
+# Tải biến môi trường
 load_dotenv()
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+# Khởi tạo FastAPI
+app = FastAPI(title="CAPTCHA Analysis API")
+
+# Thêm CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Cho phép tất cả các nguồn gốc
+    allow_credentials=True,
+    allow_methods=["*"],  # Cho phép tất cả các phương thức
+    allow_headers=["*"],  # Cho phép tất cả các header
+)
 
 # Cấu hình API Roboflow
 PROJECT_ID = "tk-3d-cq49s-1j4v5"  # Project ID từ data.yaml
@@ -321,9 +338,6 @@ def process_image(image_path, captcha_offset_x=None, captcha_offset_y=None):
             "unique_characters": len(class_groups)
         }
         
-        # In JSON ra stdout, không in debug messages
-        print(json.dumps(enhanced_output))
-        
         return enhanced_output
     
     except Exception as e:
@@ -335,39 +349,87 @@ def process_image(image_path, captcha_offset_x=None, captcha_offset_y=None):
             "duplicates": [],
             "all_predictions": []
         }
-        print(json.dumps(error_output))
         return error_output
 
-# Chạy script
-if __name__ == "__main__":
-    # Kiểm tra xem có đường dẫn ảnh được truyền vào không
-    if len(sys.argv) < 2:
-        error_output = {
-            "lỗi": "Thiếu đường dẫn ảnh",
-            "chi_tiết": "Vui lòng cung cấp đường dẫn ảnh",
-            "duplicate_characters": {},
-            "duplicates": [],
-            "all_predictions": []
-        }
-        print(json.dumps(error_output))
-        sys.exit(1)
+# Root endpoint
+@app.get("/")
+async def root():
+    return {"message": "Welcome to CAPTCHA Analysis API", "version": "1.0.0"}
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+# API endpoint để xử lý ảnh từ file upload
+@app.post("/process")
+async def process_image_endpoint(
+    file: UploadFile = File(...),
+    captcha_offset_x: int = Form(None),
+    captcha_offset_y: int = Form(None)
+):
+    try:
+        # Tạo file tạm để lưu file upload
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            temp_file.write(await file.read())
+            temp_file_path = temp_file.name
+        
+        # Xử lý ảnh
+        result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
+        
+        # Xóa file tạm sau khi xử lý
+        os.unlink(temp_file_path)
+        
+        return result
     
-    # Lấy đường dẫn ảnh từ argument
-    image_path = sys.argv[1]
-    
-    # Kiểm tra xem có offset của khung CAPTCHA được truyền vào không
-    captcha_offset_x = None
-    captcha_offset_y = None
-    
-    if len(sys.argv) >= 4:
-        try:
-            captcha_offset_x = int(sys.argv[2])
-            captcha_offset_y = int(sys.argv[3])
-        except ValueError:
-            error_output = {
-                "lỗi": "Offset khung CAPTCHA không hợp lệ",
-                "chi_tiết": f"Sử dụng offset mặc định ({CAPTCHA_IMAGE_X}, {CAPTCHA_IMAGE_Y})"
+    except Exception as e:
+        # Xử lý lỗi
+        return JSONResponse(
+            status_code=500,
+            content={
+                "lỗi": str(e),
+                "chi_tiết": "Lỗi trong quá trình xử lý ảnh",
+                "duplicate_characters": {},
+                "duplicates": [],
+                "all_predictions": []
             }
-            print(json.dumps(error_output))
+        )
+
+# API endpoint để xử lý ảnh từ URL
+@app.post("/process_url")
+async def process_image_url(
+    image_url: str = Form(...),
+    captcha_offset_x: int = Form(None),
+    captcha_offset_y: int = Form(None)
+):
+    try:
+        # Tải ảnh từ URL và lưu vào file tạm
+        response = requests.get(image_url)
+        if response.status_code != 200:
+            raise HTTPException(status_code=400, detail=f"Không thể tải ảnh từ URL, mã trạng thái: {response.status_code}")
+        
+        # Tạo file tạm để lưu ảnh
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            temp_file.write(response.content)
+            temp_file_path = temp_file.name
+        
+        # Xử lý ảnh
+        result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
+        
+        # Xóa file tạm sau khi xử lý
+        os.unlink(temp_file_path)
+        
+        return result
     
-    process_image(image_path, captcha_offset_x, captcha_offset_y)
+    except Exception as e:
+        # Xử lý lỗi
+        return JSONResponse(
+            status_code=500,
+            content={
+                "lỗi": str(e),
+                "chi_tiết": "Lỗi trong quá trình xử lý ảnh từ URL",
+                "duplicate_characters": {},
+                "duplicates": [],
+                "all_predictions": []
+            }
+        )
