@@ -15,7 +15,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 # Cấu hình API Roboflow
 PROJECT_ID = "tk-3d-cq49s-1j4v5"  # Project ID từ data.yaml
 VERSION = "1"  # Version từ data.yaml  
-API_KEY = os.getenv("D0z8HBtVSIXIYX0bKrUR")  # API key của bạn
+API_KEY = os.getenv("ROBOFLOW_API_KEY")  
 # API endpoint configuration
 BASE_URL = "https://detect.roboflow.com"
 
