@@ -112,7 +112,11 @@ def analyze_image_with_roboflow(image_path):
     try:
         # Đọc file ảnh và mã hóa base64
         with open(image_path, "rb") as image_file:
-            encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+            # Chuyển ảnh sang RGB và nén JPEG để giảm kích thước
+            img = Image.open(image_file)
+            buffered = io.BytesIO()
+            img.convert('RGB').save(buffered, format="JPEG", quality=85)
+            encoded_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
         
         # Gửi request
         try:
