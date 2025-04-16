@@ -114,21 +114,19 @@ def analyze_image_with_roboflow(image_path):
         with open(image_path, "rb") as image_file:
             encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
         
-        # Chuẩn bị payload
-        payload = encoded_image
-        
         # Headers
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': f'Bearer {API_KEY}'
         }
         
         # Gửi request
         try:
             response = requests.post(
                 url, 
-                params={'api_key': API_KEY},
-                data=payload,
+                params={
+                    'api_key': API_KEY
+                },
+                data=encoded_image,
                 headers=headers
             )
             
@@ -143,7 +141,6 @@ def analyze_image_with_roboflow(image_path):
             
     except Exception as e:
         raise Exception(f"Lỗi khi xử lý file ảnh: {e}")
-
 def process_image(image_path, captcha_offset_x=None, captcha_offset_y=None):
     try:
         # Sử dụng giá trị tính toán từ biến toàn cục nếu không có offset được chỉ định
