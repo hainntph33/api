@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security.api_key import APIKeyHeader, APIKeyQuery
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND
+# Thêm import cần thiết
+import os
 
 # Định nghĩa các models Pydantic cho API Key
 class APIKeyCreate(BaseModel):
@@ -244,10 +246,9 @@ async def get_api_key(
 def setup_api_key_management(app):
     @app.post("/api/keys", response_model=APIKeyResponse, tags=["API Keys"])
     async def create_api_key(key_data: APIKeyCreate, admin_key: str):
-        """Tạo một API key mới (yêu cầu admin key)"""
-        # Kiểm tra admin key (đặt giá trị cố định cho ví dụ này)
-        # Trong triển khai thực tế, bạn nên sử dụng một hệ thống xác thực mạnh hơn
-        ADMIN_KEY = os.environ.get("ADMIN_API_KEY", "admin_secret_key")
+        # Lấy admin key từ biến môi trường, với giá trị mặc định cho trường hợp local
+        ADMIN_KEY = os.environ.get("ADMIN_API_KEY", "admin_secret_key_2024")
+        
         if admin_key != ADMIN_KEY:
             raise HTTPException(
                 status_code=HTTP_403_FORBIDDEN,
@@ -255,38 +256,7 @@ def setup_api_key_management(app):
             )
         
         return api_key_manager.create_api_key(key_data)
-
-    @app.get("/api/keys", response_model=List[APIKeyResponse], tags=["API Keys"])
-    async def list_api_keys(admin_key: str, active_only: bool = False):
-        """Liệt kê tất cả API keys (yêu cầu admin key)"""
-        ADMIN_KEY = os.environ.get("ADMIN_API_KEY", "admin_secret_key")
-        if admin_key != ADMIN_KEY:
-            raise HTTPException(
-                status_code=HTTP_403_FORBIDDEN,
-                detail="Admin key không hợp lệ"
-            )
-        
-        return api_key_manager.list_api_keys(active_only)
-
-    @app.delete("/api/keys/{key}", tags=["API Keys"])
-    async def deactivate_api_key(key: str, admin_key: str):
-        """Vô hiệu hóa một API key (yêu cầu admin key)"""
-        ADMIN_KEY = os.environ.get("ADMIN_API_KEY", "admin_secret_key")
-        if admin_key != ADMIN_KEY:
-            raise HTTPException(
-                status_code=HTTP_403_FORBIDDEN,
-                detail="Admin key không hợp lệ"
-            )
-        
-        success = api_key_manager.deactivate_api_key(key)
-        if not success:
-            raise HTTPException(
-                status_code=HTTP_404_NOT_FOUND,
-                detail="API key không tìm thấy"
-            )
-        
-        return {"message": "API key đã được vô hiệu hóa"}
-
+    
 # Tạo HTML cho trang quản trị API Key
 def get_admin_page_html():
     return """
@@ -666,5 +636,3 @@ def add_admin_page(app):
         """Trang quản trị API key"""
         return get_admin_page_html()
 
-# Thêm import cần thiết
-import os

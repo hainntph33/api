@@ -910,6 +910,6 @@ async def secure_process_image_base64_json(request_data: ImageBase64Request):
 # Khi chạy server
 if __name__ == "__main__":
     # Đặt biến môi trường cho admin key
-    os.environ["ADMIN_API_KEY"] = "DDITOPRJJFUCOPTJDJ"  # Thay đổi giá trị này
+    os.environ["ADMIN_API_KEY"] = "admin_secret_key_2024"  # Thay đổi giá trị này
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
