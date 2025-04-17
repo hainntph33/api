@@ -15,18 +15,21 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from io import BytesIO
 from fastapi import Depends
-from apikey_manager import (
-    APIKeyManager, 
-    setup_api_key_management, 
-    get_api_key, 
-    add_admin_page
+app = FastAPI(title="CAPTCHA Analysis API")
+
+# Cấu hình CORS nếu cần
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Thêm sau khi đã khởi tạo app = FastAPI()
-# Thiết lập API key management
-setup_api_key_management(app)
 
-# Thêm trang quản trị API key
+# Thêm sau khi đã khởi tạo app = FastAPI()
+from apikey_manager import setup_api_key_management, add_admin_page, get_api_key
+setup_api_key_management(app)
 add_admin_page(app)
 
 # Pydantic model for JSON input
