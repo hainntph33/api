@@ -14,6 +14,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from io import BytesIO
+from PIL import Image
 
 app = FastAPI()
 
@@ -489,34 +490,36 @@ async def process_image_base64_url(
     captcha_offset_y: int = None
 ):
     try:
-        # Xử lý base64 prefix nếu có
+        # Tách prefix nếu có
         if "base64," in image_base64:
-            image_base64 = image_base64.split("base64,")[1]
+            image_base64 = image_base64.split("base64,", 1)[1]
 
         try:
             image_data = base64.b64decode(image_base64)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Không thể giải mã base64: {str(e)}")
 
-        # Mở ảnh bằng Pillow trực tiếp từ bytes
+        # Ghi ảnh tạm để debug nếu cần
+        if len(image_data) < 1000:
+            raise HTTPException(status_code=400, detail="Ảnh base64 quá ngắn hoặc không hợp lệ.")
+
         try:
             image = Image.open(BytesIO(image_data))
+            image.load()  # đọc toàn bộ ảnh
         except Exception as e:
+            with open("debug_output.jpg", "wb") as f:
+                f.write(image_data)
             raise HTTPException(status_code=400, detail=f"Không thể mở ảnh: {str(e)}")
 
-        # Xác định định dạng thực sự của ảnh (webp, jpeg, png,...)
         ext = image.format.lower()
         suffix = f".{ext}"
 
-        # Lưu tạm ra file đúng định dạng
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             image.save(temp_file, format=image.format)
             temp_file_path = temp_file.name
 
-        # Gọi hàm xử lý ảnh
         result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
 
-        # Xoá file tạm
         os.unlink(temp_file_path)
 
         return result
