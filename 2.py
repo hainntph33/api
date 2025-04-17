@@ -15,7 +15,10 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from io import BytesIO
 from typing import Optional
-from pydantic import BaseModel  # Thêm import này
+from pydantic import BaseModel
+
+# Import API key management at the top
+from apikey_manager import setup_api_key_management, add_admin_page, get_api_key
 
 # Tải biến môi trường
 load_dotenv()
@@ -26,7 +29,7 @@ class ImageBase64Request(BaseModel):
     captcha_offset_x: Optional[int] = None
     captcha_offset_y: Optional[int] = None
 
-# Khởi tạo FastAPI - chỉ khởi tạo một lần
+# Khởi tạo FastAPI - chỉ một lần duy nhất
 app = FastAPI(title="CAPTCHA Analysis API")
 
 # Thêm CORS middleware
@@ -38,9 +41,11 @@ app.add_middleware(
     allow_headers=["*"],  # Cho phép tất cả các header
 )
 
-# Thêm sau khi đã khởi tạo app = FastAPI()
-from apikey_manager import setup_api_key_management, add_admin_page, get_api_key
+# Set up API key management
+setup_api_key_management(app)
 
+# Add admin page
+add_admin_page(app)
 # Cấu hình API Roboflow
 PROJECT_ID = "tk-3d-cq49s-1j4v5"  # Project ID từ data.yaml
 VERSION = "1"  # Version từ data.yaml  
