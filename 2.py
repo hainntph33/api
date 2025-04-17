@@ -555,6 +555,119 @@ async def process_blob_url(
         }
     )
 
+@app.post("/process_dynamic_captcha")
+async def process_dynamic_captcha(
+    file: UploadFile = File(...),
+    browser_width: int = Form(None),
+    browser_height: int = Form(None),
+    captcha_x: int = Form(None),
+    captcha_y: int = Form(None),
+    captcha_width: int = Form(None),
+    captcha_height: int = Form(None)
+):
+    """
+    Xử lý CAPTCHA với các tham số động từ trình duyệt
+    """
+    try:
+        # Tạo file tạm để lưu file upload
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            temp_file.write(await file.read())
+            temp_file_path = temp_file.name
+        
+        # Chuẩn bị cấu hình động
+        dynamic_config = {
+            'browser_width': browser_width or 1920,  # Giá trị mặc định nếu không có
+            'browser_height': browser_height or 1080,
+            'captcha_area': {
+                'x': captcha_x or 0,
+                'y': captcha_y or 0,
+                'width': captcha_width or 300,
+                'height': captcha_height or 200
+            }
+        }
+        
+        # Xử lý ảnh với cấu hình động
+        result = process_image_with_dynamic_config(
+            temp_file_path, 
+            dynamic_config
+        )
+        
+        # Xóa file tạm
+        os.unlink(temp_file_path)
+        
+        return result
+    
+    except Exception as e:
+        return {
+            'error': str(e),
+            'details': 'Lỗi trong quá trình xử lý ảnh CAPTCHA động'
+        }
+
+def process_image_with_dynamic_config(image_path, dynamic_config):
+    """
+    Xử lý ảnh CAPTCHA với cấu hình động từ trình duyệt
+    """
+    try:
+        # Tải ảnh và phân tích
+        image = Image.open(image_path)
+        original_width, original_height = image.size
+        
+        # Phân tích ảnh với Roboflow
+        roboflow_results = analyze_image_with_roboflow(image_path)
+        
+        # Tính toán tỷ lệ chuyển đổi
+        width_ratio = dynamic_config['captcha_area']['width'] / original_width
+        height_ratio = dynamic_config['captcha_area']['height'] / original_height
+        
+        # Xử lý các dự đoán
+        processed_detections = []
+        class_groups = defaultdict(list)
+        
+        for prediction in roboflow_results.get('predictions', []):
+            # Chuyển đổi tọa độ
+            converted_detection = {
+                'browser_x': round(
+                    dynamic_config['captcha_area']['x'] + 
+                    prediction['x'] * width_ratio
+                ),
+                'browser_y': round(
+                    dynamic_config['captcha_area']['y'] + 
+                    prediction['y'] * height_ratio
+                ),
+                'class': prediction.get('class', 'unknown'),
+                'confidence': prediction.get('confidence', 0)
+            }
+            
+            # Nhóm theo class
+            class_groups[converted_detection['class']].append(converted_detection)
+            processed_detections.append(converted_detection)
+        
+        # Xác định các ký tự trùng lặp
+        duplicate_classes = {
+            cls: group for cls, group in class_groups.items() 
+            if len(group) > 1
+        }
+        
+        # Chuẩn bị kết quả
+        result = {
+            'duplicates': processed_detections,
+            'duplicate_characters': duplicate_classes,
+            'total_detected': len(roboflow_results.get('predictions', [])),
+            'unique_characters': len(class_groups),
+            'browser_config': dynamic_config
+        }
+        
+        return result
+    
+    except Exception as e:
+        return {
+            'error': str(e),
+            'details': 'Lỗi trong quá trình xử lý ảnh',
+            'duplicates': [],
+            'total_detected': 0,
+            'unique_characters': 0
+        }
+    
 # MỚI: HTML helper endpoint với hướng dẫn
 @app.get("/helper")
 async def helper_page():
