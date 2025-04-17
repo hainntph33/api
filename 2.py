@@ -477,7 +477,51 @@ async def process_image_base64(
                 "all_predictions": []
             }
         )
-
+# Endpoint mới để xử lý base64 qua URL
+@app.get("/process_base64_url")
+async def process_image_base64_url(
+    image_base64: str,
+    captcha_offset_x: int = None,
+    captcha_offset_y: int = None
+):
+    try:
+        # Giải mã base64 thành dữ liệu nhị phân
+        try:
+            # Xử lý trường hợp có tiền tố "data:image/..."
+            base64_data = image_base64
+            if "base64," in image_base64:
+                base64_data = image_base64.split("base64,")[1]
+            
+            image_data = base64.b64decode(base64_data)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Không thể giải mã base64: {str(e)}")
+        
+        # Tạo file tạm để lưu ảnh
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            temp_file.write(image_data)
+            temp_file_path = temp_file.name
+        
+        # Xử lý ảnh
+        result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
+        
+        # Xóa file tạm sau khi xử lý
+        os.unlink(temp_file_path)
+        
+        return result
+    
+    except Exception as e:
+        # Xử lý lỗi
+        return JSONResponse(
+            status_code=500,
+            content={
+                "lỗi": str(e),
+                "chi_tiết": "Lỗi trong quá trình xử lý ảnh từ base64 URL",
+                "duplicate_characters": {},
+                "duplicates": [],
+                "all_predictions": []
+            }
+        )
+    
 # MỚI: API endpoint để xử lý blob URL
 @app.get("/process_blob/{blob_url:path}")
 async def process_blob_url(
