@@ -13,6 +13,9 @@ import tempfile
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from io import BytesIO
+
+app = FastAPI()
 
 # Tải biến môi trường
 load_dotenv()
@@ -486,30 +489,34 @@ async def process_image_base64_url(
     captcha_offset_y: int = None
 ):
     try:
-        # Bóc tách phần base64 thuần nếu có tiền tố
-        base64_data = image_base64
+        # Xử lý base64 prefix nếu có
         if "base64," in image_base64:
-            base64_data = image_base64.split("base64,")[1]
+            image_base64 = image_base64.split("base64,")[1]
 
-        # Decode base64 thành bytes
         try:
-            image_data = base64.b64decode(base64_data)
+            image_data = base64.b64decode(image_base64)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Không thể giải mã base64: {str(e)}")
-        
-        # Nhận diện định dạng ảnh (jpg, png, webp,...)
-        image_format = imghdr.what(None, h=image_data) or "jpg"
-        suffix = f".{image_format}"
 
-        # Lưu file tạm với định dạng phù hợp
+        # Mở ảnh bằng Pillow trực tiếp từ bytes
+        try:
+            image = Image.open(BytesIO(image_data))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Không thể mở ảnh: {str(e)}")
+
+        # Xác định định dạng thực sự của ảnh (webp, jpeg, png,...)
+        ext = image.format.lower()
+        suffix = f".{ext}"
+
+        # Lưu tạm ra file đúng định dạng
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
-            temp_file.write(image_data)
+            image.save(temp_file, format=image.format)
             temp_file_path = temp_file.name
 
-        # Xử lý ảnh
+        # Gọi hàm xử lý ảnh
         result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
 
-        # Xóa file tạm
+        # Xoá file tạm
         os.unlink(temp_file_path)
 
         return result
@@ -519,13 +526,13 @@ async def process_image_base64_url(
             status_code=500,
             content={
                 "lỗi": str(e),
-                "chi_tiết": "Lỗi trong quá trình xử lý ảnh từ base64 URL",
+                "chi_tiết": "Lỗi trong quá trình xử lý ảnh",
                 "duplicate_characters": {},
                 "duplicates": [],
                 "all_predictions": []
             }
         )
-
+    
 # MỚI: API endpoint để xử lý blob URL
 @app.get("/process_blob/{blob_url:path}")
 async def process_blob_url(
