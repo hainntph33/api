@@ -10,11 +10,18 @@ from collections import defaultdict
 from dotenv import load_dotenv
 import os
 import tempfile
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from io import BytesIO
-from PIL import Image
+from pydantic import BaseModel
+from typing import Optional
+
+# Pydantic model for JSON input
+class ImageBase64Request(BaseModel):
+    image_base64: str
+    captcha_offset_x: Optional[int] = None
+    captcha_offset_y: Optional[int] = None
 
 app = FastAPI()
 
@@ -438,14 +445,103 @@ async def process_image_url(
             }
         )
 
-# MỚI: API endpoint để xử lý ảnh từ base64
+# Cải tiến: API endpoint để xử lý ảnh từ base64 - hỗ trợ cả Form và JSON
 @app.post("/process_base64")
-async def process_image_base64(
-    image_base64: str = Form(...),
-    captcha_offset_x: int = Form(None),
-    captcha_offset_y: int = Form(None)
-):
+async def process_image_base64(request: Request):
     try:
+        # Kiểm tra xem request có phải là JSON hay không
+        content_type = request.headers.get("content-type", "").lower()
+        
+        # Xử lý request dạng JSON
+        if "application/json" in content_type:
+            try:
+                json_data = await request.json()
+                image_base64 = json_data.get("image_base64")
+                captcha_offset_x = json_data.get("captcha_offset_x")
+                captcha_offset_y = json_data.get("captcha_offset_y")
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Lỗi khi đọc dữ liệu JSON: {str(e)}")
+        # Xử lý request dạng Form
+        else:
+            form_data = await request.form()
+            image_base64 = form_data.get("image_base64")
+            
+            # Chuyển đổi offset sang số nguyên nếu có
+            captcha_offset_x = form_data.get("captcha_offset_x")
+            if captcha_offset_x is not None:
+                try:
+                    captcha_offset_x = int(captcha_offset_x)
+                except ValueError:
+                    captcha_offset_x = None
+                    
+            captcha_offset_y = form_data.get("captcha_offset_y")
+            if captcha_offset_y is not None:
+                try:
+                    captcha_offset_y = int(captcha_offset_y)
+                except ValueError:
+                    captcha_offset_y = None
+        
+        # Kiểm tra xem có dữ liệu base64 hay không
+        if not image_base64:
+            raise HTTPException(status_code=422, detail="Missing required field: image_base64")
+        
+        # Giải mã base64 thành dữ liệu nhị phân
+        try:
+            # Xử lý trường hợp có tiền tố "data:image/..."
+            if "base64," in image_base64:
+                image_base64 = image_base64.split("base64,")[1]
+            
+            image_data = base64.b64decode(image_base64)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Không thể giải mã base64: {str(e)}")
+        
+        # Tạo file tạm để lưu ảnh
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            temp_file.write(image_data)
+            temp_file_path = temp_file.name
+        
+        # Xử lý ảnh
+        result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
+        
+        # Xóa file tạm sau khi xử lý
+        os.unlink(temp_file_path)
+        
+        return result
+    
+    except HTTPException as e:
+        # Chuyển tiếp lỗi HTTP
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "lỗi": e.detail,
+                "chi_tiết": "Lỗi trong quá trình xử lý request",
+                "duplicate_characters": {},
+                "duplicates": [],
+                "all_predictions": []
+            }
+        )
+    except Exception as e:
+        # Xử lý lỗi khác
+        return JSONResponse(
+            status_code=500,
+            content={
+                "lỗi": str(e),
+                "chi_tiết": "Lỗi trong quá trình xử lý ảnh từ base64",
+                "duplicate_characters": {},
+                "duplicates": [],
+                "all_predictions": []
+            }
+        )
+
+# Alternative JSON-specific endpoint for base64 processing
+@app.post("/process_base64_json")
+async def process_image_base64_json(request_data: ImageBase64Request):
+    try:
+        # Lấy thông tin từ request JSON
+        image_base64 = request_data.image_base64
+        captcha_offset_x = request_data.captcha_offset_x
+        captcha_offset_y = request_data.captcha_offset_y
+        
         # Giải mã base64 thành dữ liệu nhị phân
         try:
             # Xử lý trường hợp có tiền tố "data:image/..."
@@ -481,6 +577,7 @@ async def process_image_base64(
                 "all_predictions": []
             }
         )
+
 import imghdr  # để đoán định dạng ảnh từ bytes
 
 @app.get("/process_base64_url")
@@ -730,13 +827,37 @@ processCaptcha("blob:https://www.tiktok.com/41031d94-2563-4609-bdd2-a2af28663add
     .catch(error => console.error(error));
         </pre>
         
+        <h2>Sử dụng JSON format</h2>
+        <p>Bạn cũng có thể sử dụng JSON để gửi dữ liệu base64:</p>
+        
+        <pre>
+// JavaScript để gửi dữ liệu base64 qua JSON
+async function processCaptchaWithJSON(base64Data) {
+    const apiResponse = await fetch('https://api-4-3y29.onrender.com/process_base64', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            'image_base64': base64Data,
+            'captcha_offset_x': 107, // tùy chọn
+            'captcha_offset_y': 192  // tùy chọn
+        })
+    });
+    
+    const result = await apiResponse.json();
+    return result;
+}
+        </pre>
+        
         <h2>Các endpoints có sẵn</h2>
         <ul>
             <li><code>/</code> - Trang chào mừng</li>
             <li><code>/health</code> - Kiểm tra trạng thái API</li>
             <li><code>/process</code> - Xử lý ảnh từ file upload</li>
             <li><code>/process_url</code> - Xử lý ảnh từ URL công khai</li>
-            <li><code>/process_base64</code> - Xử lý ảnh từ chuỗi base64</li>
+            <li><code>/process_base64</code> - Xử lý ảnh từ chuỗi base64 (hỗ trợ cả form và JSON)</li>
+            <li><code>/process_base64_json</code> - Xử lý ảnh từ chuỗi base64 (chỉ hỗ trợ JSON)</li>
             <li><code>/helper</code> - Trang hướng dẫn này</li>
         </ul>
     </body>
