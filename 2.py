@@ -10,27 +10,15 @@ from collections import defaultdict
 from dotenv import load_dotenv
 import os
 import tempfile
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from io import BytesIO
-from fastapi import Depends
-app = FastAPI(title="CAPTCHA Analysis API")
+from typing import Optional
+from pydantic import BaseModel  # Thêm import này
 
-# Cấu hình CORS nếu cần
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-# Thêm sau khi đã khởi tạo app = FastAPI()
-from apikey_manager import setup_api_key_management, add_admin_page, get_api_key
-setup_api_key_management(app)
-add_admin_page(app)
+# Tải biến môi trường
+load_dotenv()
 
 # Pydantic model for JSON input
 class ImageBase64Request(BaseModel):
@@ -38,12 +26,7 @@ class ImageBase64Request(BaseModel):
     captcha_offset_x: Optional[int] = None
     captcha_offset_y: Optional[int] = None
 
-app = FastAPI()
-
-# Tải biến môi trường
-load_dotenv()
-
-# Khởi tạo FastAPI
+# Khởi tạo FastAPI - chỉ khởi tạo một lần
 app = FastAPI(title="CAPTCHA Analysis API")
 
 # Thêm CORS middleware
@@ -54,6 +37,9 @@ app.add_middleware(
     allow_methods=["*"],  # Cho phép tất cả các phương thức
     allow_headers=["*"],  # Cho phép tất cả các header
 )
+
+# Thêm sau khi đã khởi tạo app = FastAPI()
+from apikey_manager import setup_api_key_management, add_admin_page, get_api_key
 
 # Cấu hình API Roboflow
 PROJECT_ID = "tk-3d-cq49s-1j4v5"  # Project ID từ data.yaml
@@ -460,10 +446,93 @@ async def process_image_url(
             }
         )
 
-@app.post("/secure/process_base64", dependencies=[Depends(get_api_key)])
-async def secure_process_image_base64(request: Request):
-    """Route giống /process_base64 nhưng yêu cầu API key hợp lệ"""
-    return await process_image_base64(request)
+# Cải tiến: API endpoint để xử lý ảnh từ base64
+@app.post("/process_base64")
+async def process_image_base64(request: Request):
+    try:
+        # Kiểm tra xem request có phải là JSON hay không
+        content_type = request.headers.get("content-type", "").lower()
+        
+        # Xử lý request dạng JSON
+        if "application/json" in content_type:
+            try:
+                json_data = await request.json()
+                image_base64 = json_data.get("image_base64")
+                captcha_offset_x = json_data.get("captcha_offset_x")
+                captcha_offset_y = json_data.get("captcha_offset_y")
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Lỗi khi đọc dữ liệu JSON: {str(e)}")
+        # Xử lý request dạng Form
+        else:
+            form_data = await request.form()
+            image_base64 = form_data.get("image_base64")
+            
+            # Chuyển đổi offset sang số nguyên nếu có
+            captcha_offset_x = form_data.get("captcha_offset_x")
+            if captcha_offset_x is not None:
+                try:
+                    captcha_offset_x = int(captcha_offset_x)
+                except ValueError:
+                    captcha_offset_x = None
+                    
+            captcha_offset_y = form_data.get("captcha_offset_y")
+            if captcha_offset_y is not None:
+                try:
+                    captcha_offset_y = int(captcha_offset_y)
+                except ValueError:
+                    captcha_offset_y = None
+        
+        # Kiểm tra xem có dữ liệu base64 hay không
+        if not image_base64:
+            raise HTTPException(status_code=422, detail="Missing required field: image_base64")
+        
+        # Giải mã base64 thành dữ liệu nhị phân
+        try:
+            # Xử lý trường hợp có tiền tố "data:image/..."
+            if "base64," in image_base64:
+                image_base64 = image_base64.split("base64,")[1]
+            
+            image_data = base64.b64decode(image_base64)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Không thể giải mã base64: {str(e)}")
+        
+        # Tạo file tạm để lưu ảnh
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            temp_file.write(image_data)
+            temp_file_path = temp_file.name
+        
+        # Xử lý ảnh
+        result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
+        
+        # Xóa file tạm sau khi xử lý
+        os.unlink(temp_file_path)
+        
+        return result
+    
+    except HTTPException as e:
+        # Chuyển tiếp lỗi HTTP
+        return JSONResponse(
+            status_code=e.status_code,
+            content={
+                "lỗi": e.detail,
+                "chi_tiết": "Lỗi trong quá trình xử lý request",
+                "duplicate_characters": {},
+                "duplicates": [],
+                "all_predictions": []
+            }
+        )
+    except Exception as e:
+        # Xử lý lỗi khác
+        return JSONResponse(
+            status_code=500,
+            content={
+                "lỗi": str(e),
+                "chi_tiết": "Lỗi trong quá trình xử lý ảnh từ base64",
+                "duplicate_characters": {},
+                "duplicates": [],
+                "all_predictions": []
+            }
+        )
 
 # Alternative JSON-specific endpoint for base64 processing
 @app.post("/process_base64_json")
@@ -798,29 +867,13 @@ async function processCaptchaWithJSON(base64Data) {
     
     return HTMLResponse(content=html_content, status_code=200)
 
-# Thêm import cần thiết cho HTMLResponse
-from fastapi.responses import HTMLResponse
-
-from fastapi import Depends, Security
-import os
-
-# Import module API Key
-from apikey_manager import (
-    APIKeyCreate, 
-    APIKeyResponse, 
-    APIKeyDB, 
-    APIKeyManager, 
-    get_api_key, 
-    setup_api_key_management
-)
-
-# Khởi tạo API Key Manager
-api_key_manager = APIKeyManager()
-
-# Setup các route quản lý API key
+# Thiết lập API key management
 setup_api_key_management(app)
 
-# Đặt các route cần bảo vệ
+# Thêm trang quản trị API key
+add_admin_page(app)
+
+# Đặt các route bảo mật với API key
 @app.post("/secure/process", dependencies=[Depends(get_api_key)])
 async def secure_process_image_endpoint(
     file: UploadFile = File(...),
@@ -849,7 +902,6 @@ async def secure_process_image_base64_json(request_data: ImageBase64Request):
     """Route giống /process_base64_json nhưng yêu cầu API key hợp lệ"""
     return await process_image_base64_json(request_data)
 
-# Khi chạy server
 # Khi chạy server
 if __name__ == "__main__":
     # Đặt biến môi trường cho admin key
