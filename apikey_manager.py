@@ -256,6 +256,38 @@ def setup_api_key_management(app):
             )
         
         return api_key_manager.create_api_key(key_data)
+        
+    # Bổ sung thêm endpoints để liệt kê và vô hiệu hóa API key
+    @app.get("/api/keys", response_model=List[APIKeyResponse], tags=["API Keys"])
+    async def list_api_keys(admin_key: str, active_only: bool = False):
+        """Liệt kê tất cả API keys (yêu cầu admin key)"""
+        ADMIN_KEY = os.environ.get("ADMIN_API_KEY", "admin_secret_key_2024")
+        if admin_key != ADMIN_KEY:
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN,
+                detail="Admin key không hợp lệ"
+            )
+        
+        return api_key_manager.list_api_keys(active_only)
+
+    @app.delete("/api/keys/{key}", tags=["API Keys"])
+    async def deactivate_api_key(key: str, admin_key: str):
+        """Vô hiệu hóa một API key (yêu cầu admin key)"""
+        ADMIN_KEY = os.environ.get("ADMIN_API_KEY", "admin_secret_key_2024")
+        if admin_key != ADMIN_KEY:
+            raise HTTPException(
+                status_code=HTTP_403_FORBIDDEN,
+                detail="Admin key không hợp lệ"
+            )
+        
+        success = api_key_manager.deactivate_api_key(key)
+        if not success:
+            raise HTTPException(
+                status_code=HTTP_404_NOT_FOUND,
+                detail="API key không tìm thấy"
+            )
+        
+        return {"message": "API key đã được vô hiệu hóa"} 
     
 # Tạo HTML cho trang quản trị API Key
 def get_admin_page_html():
