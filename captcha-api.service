@@ -1,0 +1,16 @@
+[Unit]
+Description=CAPTCHA Analysis API Service
+After=network.target
+
+[Service]
+User=Hainguyen
+Group=Hainguyen
+WorkingDirectory=/opt/captcha-api
+Environment="PATH=/opt/captcha-api/venv/bin"
+EnvironmentFile=/opt/captcha-api/.env
+ExecStart=/opt/captcha-api/venv/bin/gunicorn -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8000 2:app
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
