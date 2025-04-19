@@ -293,370 +293,656 @@ def setup_api_key_management(app):
 def get_admin_page_html():
     return """
     <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Quản trị API Key</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 20px;
-                background-color: #f5f5f5;
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản trị API Key</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-hover: #3a56d4;
+            --danger: #ef476f;
+            --danger-hover: #d64263;
+            --success: #06d6a0;
+            --warning: #ffd166;
+            --info: #118ab2;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border: #dee2e6;
+            --shadow: rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f7f9fc;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        header .logo {
+            margin-right: 1rem;
+            font-size: 2rem;
+            color: var(--primary);
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px var(--shadow);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            background-color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+        }
+
+        .card-header h2 i {
+            margin-right: 0.75rem;
+            color: var(--primary);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="number"],
+        input[type="password"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="number"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+
+        .btn i {
+            margin-right: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger-hover);
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .alert i {
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .alert-success {
+            background-color: rgba(6, 214, 160, 0.1);
+            border: 1px solid rgba(6, 214, 160, 0.2);
+            color: var(--success);
+        }
+
+        .alert-error {
+            background-color: rgba(239, 71, 111, 0.1);
+            border: 1px solid rgba(239, 71, 111, 0.2);
+            color: var(--danger);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 50px;
+        }
+
+        .badge-success {
+            background-color: rgba(6, 214, 160, 0.1);
+            color: var(--success);
+        }
+
+        .badge-danger {
+            background-color: rgba(239, 71, 111, 0.1);
+            color: var(--danger);
+        }
+
+        .badge-warning {
+            background-color: rgba(255, 209, 102, 0.1);
+            color: var(--warning);
+        }
+
+        .badge-info {
+            background-color: rgba(17, 138, 178, 0.1);
+            color: var(--info);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--gray);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(247, 250, 252, 0.8);
+        }
+
+        .api-key {
+            font-family: 'Courier New', monospace;
+            background-color: #f1f5f9;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .status-inactive {
+            color: var(--danger);
+            font-weight: bold;
+        }
+
+        .actions {
+            white-space: nowrap;
+        }
+
+        .flex {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .filters {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .custom-control {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .custom-control input {
+            margin-right: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .filters {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
             }
-            .container {
-                max-width: 1000px;
-                margin: 0 auto;
-                background-color: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            
+            .table-responsive {
+                overflow-x: auto;
             }
-            h1 {
-                color: #333;
-                margin-top: 0;
-            }
-            .form-group {
-                margin-bottom: 15px;
-            }
-            label {
-                display: block;
-                margin-bottom: 5px;
-                font-weight: bold;
-            }
-            input[type="text"],
-            input[type="email"],
-            input[type="number"],
-            input[type="password"] {
-                width: 100%;
-                padding: 8px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                box-sizing: border-box;
-            }
-            button {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                padding: 10px 15px;
-                border-radius: 4px;
-                cursor: pointer;
-            }
-            button:hover {
-                background-color: #45a049;
-            }
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 20px;
-            }
-            th, td {
-                padding: 12px;
-                text-align: left;
-                border-bottom: 1px solid #ddd;
-            }
-            th {
-                background-color: #f2f2f2;
-            }
-            .api-key {
-                font-family: monospace;
-                background-color: #f8f8f8;
-                padding: 2px 4px;
-                border-radius: 2px;
-                border: 1px solid #ddd;
-            }
-            .status-active {
-                color: green;
-                font-weight: bold;
-            }
-            .status-inactive {
-                color: red;
-                font-weight: bold;
-            }
-            .actions {
-                white-space: nowrap;
-            }
-            .section {
-                margin-bottom: 30px;
-                padding-bottom: 20px;
-                border-bottom: 1px solid #eee;
-            }
-            .alert {
-                padding: 10px 15px;
-                margin-bottom: 15px;
-                border-radius: 4px;
-            }
-            .alert-success {
-                background-color: #dff0d8;
-                border: 1px solid #d6e9c6;
-                color: #3c763d;
-            }
-            .alert-error {
-                background-color: #f2dede;
-                border: 1px solid #ebccd1;
-                color: #a94442;
-            }
-            .hidden {
-                display: none;
-            }
-            .flex {
-                display: flex;
-                gap: 10px;
-            }
-            .btn-danger {
-                background-color: #d9534f;
-            }
-            .btn-danger:hover {
-                background-color: #c9302c;
-            }
-            .tag {
-                display: inline-block;
-                padding: 2px 8px;
-                border-radius: 4px;
-                font-size: 12px;
-                font-weight: bold;
-            }
-            .tag-limit {
-                background-color: #f0ad4e;
-                color: white;
-            }
-            .tag-unlimited {
-                background-color: #5bc0de;
-                color: white;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #e2e8f0;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--primary);
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: var(--transition);
+        }
+
+        .copy-btn:hover {
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <i class="fas fa-key logo"></i>
             <h1>Quản lý API Key</h1>
-            
-            <div id="message" class="alert hidden"></div>
-            
-            <div class="section">
-                <h2>Tạo API Key mới</h2>
+        </header>
+
+        <div id="message" class="alert hidden"></div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-plus-circle"></i> Tạo API Key mới</h2>
+            </div>
+            <div class="card-body">
                 <form id="createKeyForm">
                     <div class="form-group">
-                        <label for="user_name">Tên người dùng:</label>
-                        <input type="text" id="user_name" name="user_name" required>
+                        <label for="user_name">Tên người dùng</label>
+                        <input type="text" id="user_name" name="user_name" placeholder="Nhập tên người dùng" required>
                     </div>
                     <div class="form-group">
-                        <label for="user_email">Email:</label>
-                        <input type="email" id="user_email" name="user_email" required>
+                        <label for="user_email">Email</label>
+                        <input type="email" id="user_email" name="user_email" placeholder="example@domain.com" required>
                     </div>
                     <div class="form-group">
-                        <label for="expires_in_days">Thời hạn (ngày):</label>
+                        <label for="expires_in_days">Thời hạn (ngày)</label>
                         <input type="number" id="expires_in_days" name="expires_in_days" value="30" min="1">
                     </div>
                     <div class="form-group">
-                        <label for="usage_limit">Giới hạn sử dụng (-1 là không giới hạn):</label>
+                        <label for="usage_limit">Giới hạn sử dụng (-1 là không giới hạn)</label>
                         <input type="number" id="usage_limit" name="usage_limit" value="-1">
                     </div>
                     <div class="form-group">
-                        <label for="admin_key">Admin Key:</label>
-                        <input type="password" id="admin_key" name="admin_key" required>
+                        <label for="admin_key">Admin Key</label>
+                        <input type="password" id="admin_key" name="admin_key" placeholder="Nhập Admin Key" required>
                     </div>
-                    <button type="submit">Tạo API Key</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-key"></i> Tạo API Key</button>
                 </form>
-            </div>
-            
-            <div class="section">
-                <h2>Danh sách API Key</h2>
-                <div class="flex">
-                    <button id="refreshKeys">Làm mới danh sách</button>
-                    <div>
-                        <input type="checkbox" id="showActiveOnly" checked>
-                        <label for="showActiveOnly">Chỉ hiển thị key đang hoạt động</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="admin_key_list">Admin Key:</label>
-                    <input type="password" id="admin_key_list" required>
-                </div>
-                
-                <table id="apiKeysTable">
-                    <thead>
-                        <tr>
-                            <th>API Key</th>
-                            <th>Người dùng</th>
-                            <th>Email</th>
-                            <th>Ngày tạo</th>
-                            <th>Hết hạn</th>
-                            <th>Sử dụng</th>
-                            <th>Trạng thái</th>
-                            <th>Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Sẽ được điền bởi JavaScript -->
-                    </tbody>
-                </table>
             </div>
         </div>
 
-        <script>
-            // Kiểm tra trạng thái message và hiển thị nếu cần
-            function showMessage(message, isError = false) {
-                const messageEl = document.getElementById('message');
-                messageEl.textContent = message;
-                messageEl.classList.remove('hidden', 'alert-success', 'alert-error');
-                messageEl.classList.add(isError ? 'alert-error' : 'alert-success');
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-list"></i> Danh sách API Key</h2>
+            </div>
+            <div class="card-body">
+                <div class="filters">
+                    <div class="form-group" style="margin-bottom: 0; flex-grow: 1;">
+                        <label for="admin_key_list">Admin Key</label>
+                        <input type="password" id="admin_key_list" placeholder="Nhập Admin Key để xem danh sách" required>
+                    </div>
+                    <div class="flex">
+                        <button id="refreshKeys" class="btn btn-primary"><i class="fas fa-sync-alt"></i> Làm mới</button>
+                        <label class="custom-control">
+                            <input type="checkbox" id="showActiveOnly" checked>
+                            <span>Chỉ hiển thị key đang hoạt động</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="apiKeysTable">
+                        <thead>
+                            <tr>
+                                <th>API Key</th>
+                                <th>Người dùng</th>
+                                <th>Email</th>
+                                <th>Ngày tạo</th>
+                                <th>Hết hạn</th>
+                                <th>Sử dụng</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="8">
+                                    <div class="empty-state">
+                                        <i class="fas fa-database"></i>
+                                        <p>Nhập Admin Key và nhấn "Làm mới" để xem danh sách API Key</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Hiển thị thông báo
+        function showMessage(message, isError = false) {
+            const messageEl = document.getElementById('message');
+            messageEl.innerHTML = `<i class="fas fa-${isError ? 'exclamation-circle' : 'check-circle'}"></i> ${message}`;
+            messageEl.classList.remove('hidden', 'alert-success', 'alert-error');
+            messageEl.classList.add(isError ? 'alert-error' : 'alert-success');
+            
+            // Tự động ẩn sau 5 giây
+            setTimeout(() => {
+                messageEl.classList.add('hidden');
+            }, 5000);
+            
+            // Cuộn lên đầu trang để xem thông báo
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Copy API key
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showMessage('Đã sao chép API key vào clipboard');
+            }).catch(err => {
+                console.error('Không thể sao chép: ', err);
+            });
+        }
+        
+        // Khởi tạo form tạo API key
+        document.getElementById('createKeyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                user_name: document.getElementById('user_name').value,
+                user_email: document.getElementById('user_email').value,
+                expires_in_days: parseInt(document.getElementById('expires_in_days').value),
+                usage_limit: parseInt(document.getElementById('usage_limit').value)
+            };
+            
+            const adminKey = document.getElementById('admin_key').value;
+            
+            try {
+                const response = await fetch(`/api/keys?admin_key=${encodeURIComponent(adminKey)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
                 
-                // Tự động ẩn sau 5 giây
-                setTimeout(() => {
-                    messageEl.classList.add('hidden');
-                }, 5000);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Không thể tạo API key');
+                }
+                
+                const data = await response.json();
+                showMessage(`API key đã được tạo thành công: ${data.key}`);
+                
+                // Reset form
+                document.getElementById('user_name').value = '';
+                document.getElementById('user_email').value = '';
+                
+                // Làm mới danh sách
+                document.getElementById('admin_key_list').value = adminKey;
+                fetchApiKeys();
+                
+            } catch (error) {
+                showMessage(error.message, true);
+            }
+        });
+        
+        // Tải danh sách API keys
+        async function fetchApiKeys() {
+            const adminKey = document.getElementById('admin_key_list').value;
+            if (!adminKey) {
+                showMessage('Vui lòng nhập Admin Key để xem danh sách', true);
+                return;
             }
             
-            // Khởi tạo form tạo API key
-            document.getElementById('createKeyForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
+            const showActiveOnly = document.getElementById('showActiveOnly').checked;
+            
+            try {
+                const response = await fetch(`/api/keys?admin_key=${encodeURIComponent(adminKey)}&active_only=${showActiveOnly}`);
                 
-                const formData = {
-                    user_name: document.getElementById('user_name').value,
-                    user_email: document.getElementById('user_email').value,
-                    expires_in_days: parseInt(document.getElementById('expires_in_days').value),
-                    usage_limit: parseInt(document.getElementById('usage_limit').value)
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Không thể tải danh sách API key');
+                }
+                
+                const keys = await response.json();
+                renderApiKeysTable(keys, adminKey);
+                
+            } catch (error) {
+                showMessage(error.message, true);
+            }
+        }
+        
+        // Hiển thị danh sách API keys trong bảng
+        function renderApiKeysTable(keys, adminKey) {
+            const tbody = document.querySelector('#apiKeysTable tbody');
+            tbody.innerHTML = '';
+            
+            if (keys.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="8">
+                        <div class="empty-state">
+                            <i class="fas fa-search"></i>
+                            <p>Không tìm thấy API key nào</p>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+                return;
+            }
+            
+            keys.forEach(key => {
+                const row = document.createElement('tr');
+                
+                // Định dạng ngày tháng
+                const options = { 
+                    year: 'numeric', 
+                    month: '2-digit', 
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
                 };
+                const createdDate = new Date(key.created_at).toLocaleDateString('vi-VN', options);
+                const expiresDate = key.expires_at ? 
+                    new Date(key.expires_at).toLocaleDateString('vi-VN', options) : 
+                    '<span class="badge badge-info">Không hết hạn</span>';
                 
-                const adminKey = document.getElementById('admin_key').value;
-                
-                try {
-                    const response = await fetch(`/api/keys?admin_key=${encodeURIComponent(adminKey)}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(formData)
-                    });
+                // Hiển thị giới hạn sử dụng
+                let usageText = '';
+                if (key.usage_limit > 0) {
+                    const usagePercent = (key.usage_count / key.usage_limit) * 100;
+                    let badgeClass = 'badge-info';
                     
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.detail || 'Không thể tạo API key');
+                    if (usagePercent >= 90) {
+                        badgeClass = 'badge-danger';
+                    } else if (usagePercent >= 70) {
+                        badgeClass = 'badge-warning';
                     }
                     
-                    const data = await response.json();
-                    showMessage(`API key đã được tạo thành công: ${data.key}`);
-                    
-                    // Reset form
-                    document.getElementById('user_name').value = '';
-                    document.getElementById('user_email').value = '';
-                    
-                    // Làm mới danh sách
-                    fetchApiKeys();
-                    
-                } catch (error) {
-                    showMessage(error.message, true);
+                    usageText = `${key.usage_count} / ${key.usage_limit} <span class="badge ${badgeClass}">Giới hạn</span>`;
+                } else {
+                    usageText = `${key.usage_count} <span class="badge badge-success">Không giới hạn</span>`;
                 }
+                
+                // Trạng thái
+                const statusClass = key.is_active ? 'status-active' : 'status-inactive';
+                const statusText = key.is_active ? 
+                    '<span class="badge badge-success">Hoạt động</span>' : 
+                    '<span class="badge badge-danger">Vô hiệu</span>';
+                
+                row.innerHTML = `
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            <span class="api-key">${key.key}</span>
+                            <button class="copy-btn" onclick="copyToClipboard('${key.key}')" title="Sao chép">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td>${key.user_name}</td>
+                    <td>${key.user_email}</td>
+                    <td>${createdDate}</td>
+                    <td>${expiresDate}</td>
+                    <td>${usageText}</td>
+                    <td class="${statusClass}">${statusText}</td>
+                    <td class="actions">
+                        ${key.is_active ? 
+                            `<button class="btn btn-danger btn-sm deactivate-key" data-key="${key.key}">
+                                <i class="fas fa-ban"></i> Vô hiệu hóa
+                            </button>` : 
+                            ''}
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
             });
             
-            // Tải danh sách API keys
-            async function fetchApiKeys() {
-                const adminKey = document.getElementById('admin_key_list').value;
-                if (!adminKey) {
-                    showMessage('Vui lòng nhập Admin Key để xem danh sách', true);
-                    return;
-                }
-                
-                const showActiveOnly = document.getElementById('showActiveOnly').checked;
-                
-                try {
-                    const response = await fetch(`/api/keys?admin_key=${encodeURIComponent(adminKey)}&active_only=${showActiveOnly}`);
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.detail || 'Không thể tải danh sách API key');
-                    }
-                    
-                    const keys = await response.json();
-                    renderApiKeysTable(keys, adminKey);
-                    
-                } catch (error) {
-                    showMessage(error.message, true);
-                }
-            }
-            
-            // Hiển thị danh sách API keys trong bảng
-            function renderApiKeysTable(keys, adminKey) {
-                const tbody = document.querySelector('#apiKeysTable tbody');
-                tbody.innerHTML = '';
-                
-                if (keys.length === 0) {
-                    const row = document.createElement('tr');
-                    row.innerHTML = '<td colspan="8" style="text-align: center;">Không có API key nào</td>';
-                    tbody.appendChild(row);
-                    return;
-                }
-                
-                keys.forEach(key => {
-                    const row = document.createElement('tr');
-                    
-                    // Định dạng ngày tháng
-                    const createdDate = new Date(key.created_at).toLocaleString();
-                    const expiresDate = key.expires_at ? new Date(key.expires_at).toLocaleString() : 'Không hết hạn';
-                    
-                    // Hiển thị giới hạn sử dụng
-                    let usageText = '';
-                    if (key.usage_limit > 0) {
-                        usageText = `${key.usage_count} / ${key.usage_limit} <span class="tag tag-limit">Giới hạn</span>`;
-                    } else {
-                        usageText = `${key.usage_count} <span class="tag tag-unlimited">Không giới hạn</span>`;
-                    }
-                    
-                    // Trạng thái
-                    const statusClass = key.is_active ? 'status-active' : 'status-inactive';
-                    const statusText = key.is_active ? 'Hoạt động' : 'Vô hiệu';
-                    
-                    row.innerHTML = `
-                        <td><span class="api-key">${key.key}</span></td>
-                        <td>${key.user_name}</td>
-                        <td>${key.user_email}</td>
-                        <td>${createdDate}</td>
-                        <td>${expiresDate}</td>
-                        <td>${usageText}</td>
-                        <td class="${statusClass}">${statusText}</td>
-                        <td class="actions">
-                            ${key.is_active ? 
-                                `<button class="btn-danger deactivate-key" data-key="${key.key}">Vô hiệu hóa</button>` : 
-                                ''}
-                        </td>
-                    `;
-                    
-                    tbody.appendChild(row);
-                });
-                
-                // Thêm sự kiện cho các nút vô hiệu hóa
-                document.querySelectorAll('.deactivate-key').forEach(button => {
-                    button.addEventListener('click', async () => {
-                        const apiKey = button.getAttribute('data-key');
-                        if (confirm(`Bạn có chắc chắn muốn vô hiệu hóa API key này: ${apiKey}?`)) {
-                            try {
-                                const response = await fetch(`/api/keys/${apiKey}?admin_key=${encodeURIComponent(adminKey)}`, {
-                                    method: 'DELETE'
-                                });
-                                
-                                if (!response.ok) {
-                                    const errorData = await response.json();
-                                    throw new Error(errorData.detail || 'Không thể vô hiệu hóa API key');
-                                }
-                                
-                                showMessage('API key đã được vô hiệu hóa thành công');
-                                fetchApiKeys();
-                                
-                            } catch (error) {
-                                showMessage(error.message, true);
+            // Thêm sự kiện cho các nút vô hiệu hóa
+            document.querySelectorAll('.deactivate-key').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const apiKey = button.getAttribute('data-key');
+                    if (confirm(`Bạn có chắc chắn muốn vô hiệu hóa API key này: ${apiKey}?`)) {
+                        try {
+                            const response = await fetch(`/api/keys/${apiKey}?admin_key=${encodeURIComponent(adminKey)}`, {
+                                method: 'DELETE'
+                            });
+                            
+                            if (!response.ok) {
+                                const errorData = await response.json();
+                                throw new Error(errorData.detail || 'Không thể vô hiệu hóa API key');
                             }
+                            
+                            showMessage('API key đã được vô hiệu hóa thành công');
+                            fetchApiKeys();
+                            
+                        } catch (error) {
+                            showMessage(error.message, true);
                         }
-                    });
+                    }
                 });
-            }
-            
-            // Sự kiện nút làm mới
-            document.getElementById('refreshKeys').addEventListener('click', fetchApiKeys);
-            
-            // Sự kiện thay đổi checkbox chỉ hiển thị key đang hoạt động
-            document.getElementById('showActiveOnly').addEventListener('change', fetchApiKeys);
-        </script>
-    </body>
-    </html>
+            });
+        }
+        
+        // Hàm để sao chép API key vào clipboard
+        window.copyToClipboard = copyToClipboard;
+        
+        // Sự kiện nút làm mới
+        document.getElementById('refreshKeys').addEventListener('click', fetchApiKeys);
+        
+        // Sự kiện thay đổi checkbox chỉ hiển thị key đang hoạt động
+        document.getElementById('showActiveOnly').addEventListener('change', fetchApiKeys);
+    </script>
+</body>
+</html>
     """
 
 # Thêm endpoint cho trang quản trị
