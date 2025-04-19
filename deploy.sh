@@ -70,7 +70,7 @@ Group=$USER
 WorkingDirectory=${APP_DIR}
 Environment="PATH=${APP_DIR}/venv/bin"
 EnvironmentFile=${APP_DIR}/.env
-ExecStart=${APP_DIR}/venv/bin/gunicorn -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8000 2:app
+ExecStart=${APP_DIR}/venv/bin/gunicorn -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8000 main:app
 
 [Install]
 WantedBy=multi-user.target
@@ -101,3 +101,35 @@ echo -e "${YELLOW}ADMIN_API_KEY của bạn là: ${ADMIN_KEY}${NC}"
 echo -e "${YELLOW}Truy cập API tại: http://IP_SERVER_CỦA_BẠN:8000${NC}"
 echo -e "${YELLOW}Truy cập bảng quản trị tại: http://IP_SERVER_CỦA_BẠN:8000/admin/keys${NC}"
 echo -e "${GREEN}=====================================${NC}"
+
+$ cat > deploy.sh << EOF
+server {
+    listen 80;
+    server_name www.tulamtool.com tulamtool.com;  # Thêm cả tên miền không có www
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;  # Thay đổi tulamtool thành localhost hoặc 127.0.0.1
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Hỗ trợ WebSocket nếu cần
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        # Tăng timeout cho các yêu cầu kéo dài
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # Thêm cấu hình SSL nếu bạn có chứng chỉ SSL
+    # listen 443 ssl;
+    # ssl_certificate /etc/letsencrypt/live/tulamtool.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/tulamtool.com/privkey.pem;
+    # include /etc/letsencrypt/options-ssl-nginx.conf;
+    # ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+EOF

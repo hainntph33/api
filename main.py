@@ -17,6 +17,7 @@ from io import BytesIO
 from typing import Optional
 from pydantic import BaseModel
 import logging
+from datetime import datetime
 
 # Set up logging
 logging.basicConfig(
@@ -676,6 +677,10 @@ async def secure_process_image_base64(request: Request):
 async def secure_process_image_base64_json(request_data: ImageBase64Request):
     """Route giống /process_base64_json nhưng yêu cầu API key hợp lệ"""
     return await process_image_base64_json(request_data)
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
 # MỚI: HTML helper endpoint với hướng dẫn
 @app.get("/helper")
