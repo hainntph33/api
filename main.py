@@ -502,152 +502,152 @@ async def process_image_url(
         )
 
 # Cải tiến: API endpoint để xử lý ảnh từ base64
-@app.post("/process_base64")
-async def process_image_base64(request: Request):
-    try:
-        # Kiểm tra xem request có phải là JSON hay không
-        content_type = request.headers.get("content-type", "").lower()
+# @app.post("/process_base64")
+# async def process_image_base64(request: Request):
+#     try:
+#         # Kiểm tra xem request có phải là JSON hay không
+#         content_type = request.headers.get("content-type", "").lower()
         
-        # Xử lý request dạng JSON
-        if "application/json" in content_type:
-            try:
-                json_data = await request.json()
-                image_base64 = json_data.get("image_base64")
-                captcha_offset_x = json_data.get("captcha_offset_x")
-                captcha_offset_y = json_data.get("captcha_offset_y")
-            except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Lỗi khi đọc dữ liệu JSON: {str(e)}")
-        # Xử lý request dạng Form
-        else:
-            form_data = await request.form()
-            image_base64 = form_data.get("image_base64")
+#         # Xử lý request dạng JSON
+#         if "application/json" in content_type:
+#             try:
+#                 json_data = await request.json()
+#                 image_base64 = json_data.get("image_base64")
+#                 captcha_offset_x = json_data.get("captcha_offset_x")
+#                 captcha_offset_y = json_data.get("captcha_offset_y")
+#             except Exception as e:
+#                 raise HTTPException(status_code=400, detail=f"Lỗi khi đọc dữ liệu JSON: {str(e)}")
+#         # Xử lý request dạng Form
+#         else:
+#             form_data = await request.form()
+#             image_base64 = form_data.get("image_base64")
             
-            # Chuyển đổi offset sang số nguyên nếu có
-            captcha_offset_x = form_data.get("captcha_offset_x")
-            if captcha_offset_x is not None:
-                try:
-                    captcha_offset_x = int(captcha_offset_x)
-                except ValueError:
-                    captcha_offset_x = None
+#             # Chuyển đổi offset sang số nguyên nếu có
+#             captcha_offset_x = form_data.get("captcha_offset_x")
+#             if captcha_offset_x is not None:
+#                 try:
+#                     captcha_offset_x = int(captcha_offset_x)
+#                 except ValueError:
+#                     captcha_offset_x = None
                     
-            captcha_offset_y = form_data.get("captcha_offset_y")
-            if captcha_offset_y is not None:
-                try:
-                    captcha_offset_y = int(captcha_offset_y)
-                except ValueError:
-                    captcha_offset_y = None
+#             captcha_offset_y = form_data.get("captcha_offset_y")
+#             if captcha_offset_y is not None:
+#                 try:
+#                     captcha_offset_y = int(captcha_offset_y)
+#                 except ValueError:
+#                     captcha_offset_y = None
         
-        # Kiểm tra xem có dữ liệu base64 hay không
-        if not image_base64:
-            raise HTTPException(status_code=422, detail="Missing required field: image_base64")
+#         # Kiểm tra xem có dữ liệu base64 hay không
+#         if not image_base64:
+#             raise HTTPException(status_code=422, detail="Missing required field: image_base64")
         
-        # Log the request (truncated for privacy)
-        logger.info(f"Processing base64 image, length: {len(image_base64) if image_base64 else 0}")
+#         # Log the request (truncated for privacy)
+#         logger.info(f"Processing base64 image, length: {len(image_base64) if image_base64 else 0}")
         
-        # Giải mã base64 thành dữ liệu nhị phân
-        try:
-            # Xử lý trường hợp có tiền tố "data:image/..."
-            if "base64," in image_base64:
-                image_base64 = image_base64.split("base64,")[1]
+#         # Giải mã base64 thành dữ liệu nhị phân
+#         try:
+#             # Xử lý trường hợp có tiền tố "data:image/..."
+#             if "base64," in image_base64:
+#                 image_base64 = image_base64.split("base64,")[1]
             
-            image_data = base64.b64decode(image_base64)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Không thể giải mã base64: {str(e)}")
+#             image_data = base64.b64decode(image_base64)
+#         except Exception as e:
+#             raise HTTPException(status_code=400, detail=f"Không thể giải mã base64: {str(e)}")
         
-        # Tạo file tạm để lưu ảnh
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-            temp_file.write(image_data)
-            temp_file_path = temp_file.name
+#         # Tạo file tạm để lưu ảnh
+#         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+#             temp_file.write(image_data)
+#             temp_file_path = temp_file.name
         
-        # Xử lý ảnh
-        result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
+#         # Xử lý ảnh
+#         result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
         
-        # Xóa file tạm sau khi xử lý
-        os.unlink(temp_file_path)
+#         # Xóa file tạm sau khi xử lý
+#         os.unlink(temp_file_path)
         
-        return result
+#         return result
     
-    except HTTPException as e:
-        # Log the error
-        logger.error(f"HTTP Exception in process_image_base64: {e.detail}")
+#     except HTTPException as e:
+#         # Log the error
+#         logger.error(f"HTTP Exception in process_image_base64: {e.detail}")
         
-        # Chuyển tiếp lỗi HTTP
-        return JSONResponse(
-            status_code=e.status_code,
-            content={
-                "error": e.detail,
-                "details": "Lỗi trong quá trình xử lý request",
-                "duplicate_characters": {},
-                "duplicates": [],
-                "all_predictions": []
-            }
-        )
-    except Exception as e:
-        # Log the error
-        logger.error(f"Error in process_image_base64: {str(e)}")
+#         # Chuyển tiếp lỗi HTTP
+#         return JSONResponse(
+#             status_code=e.status_code,
+#             content={
+#                 "error": e.detail,
+#                 "details": "Lỗi trong quá trình xử lý request",
+#                 "duplicate_characters": {},
+#                 "duplicates": [],
+#                 "all_predictions": []
+#             }
+#         )
+#     except Exception as e:
+#         # Log the error
+#         logger.error(f"Error in process_image_base64: {str(e)}")
         
-        # Xử lý lỗi khác
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": str(e),
-                "details": "Lỗi trong quá trình xử lý ảnh từ base64",
-                "duplicate_characters": {},
-                "duplicates": [],
-                "all_predictions": []
-            }
-        )
+#         # Xử lý lỗi khác
+#         return JSONResponse(
+#             status_code=500,
+#             content={
+#                 "error": str(e),
+#                 "details": "Lỗi trong quá trình xử lý ảnh từ base64",
+#                 "duplicate_characters": {},
+#                 "duplicates": [],
+#                 "all_predictions": []
+#             }
+#         )
 
 # Alternative JSON-specific endpoint for base64 processing
-@app.post("/process_base64_json")
-async def process_image_base64_json(request_data: ImageBase64Request):
-    try:
-        # Lấy thông tin từ request JSON
-        image_base64 = request_data.image_base64
-        captcha_offset_x = request_data.captcha_offset_x
-        captcha_offset_y = request_data.captcha_offset_y
+# @app.post("/process_base64_json")
+# async def process_image_base64_json(request_data: ImageBase64Request):
+#     try:
+#         # Lấy thông tin từ request JSON
+#         image_base64 = request_data.image_base64
+#         captcha_offset_x = request_data.captcha_offset_x
+#         captcha_offset_y = request_data.captcha_offset_y
         
-        # Log the request (truncated for privacy)
-        logger.info(f"Processing base64 JSON image, length: {len(image_base64) if image_base64 else 0}")
+#         # Log the request (truncated for privacy)
+#         logger.info(f"Processing base64 JSON image, length: {len(image_base64) if image_base64 else 0}")
         
-        # Giải mã base64 thành dữ liệu nhị phân
-        try:
-            # Xử lý trường hợp có tiền tố "data:image/..."
-            if "base64," in image_base64:
-                image_base64 = image_base64.split("base64,")[1]
+#         # Giải mã base64 thành dữ liệu nhị phân
+#         try:
+#             # Xử lý trường hợp có tiền tố "data:image/..."
+#             if "base64," in image_base64:
+#                 image_base64 = image_base64.split("base64,")[1]
             
-            image_data = base64.b64decode(image_base64)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Không thể giải mã base64: {str(e)}")
+#             image_data = base64.b64decode(image_base64)
+#         except Exception as e:
+#             raise HTTPException(status_code=400, detail=f"Không thể giải mã base64: {str(e)}")
         
-        # Tạo file tạm để lưu ảnh
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-            temp_file.write(image_data)
-            temp_file_path = temp_file.name
+#         # Tạo file tạm để lưu ảnh
+#         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+#             temp_file.write(image_data)
+#             temp_file_path = temp_file.name
         
-        # Xử lý ảnh
-        result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
+#         # Xử lý ảnh
+#         result = process_image(temp_file_path, captcha_offset_x, captcha_offset_y)
         
-        # Xóa file tạm sau khi xử lý
-        os.unlink(temp_file_path)
+#         # Xóa file tạm sau khi xử lý
+#         os.unlink(temp_file_path)
         
-        return result
+#         return result
     
-    except Exception as e:
-        # Log the error
-        logger.error(f"Error in process_image_base64_json: {str(e)}")
+#     except Exception as e:
+#         # Log the error
+#         logger.error(f"Error in process_image_base64_json: {str(e)}")
         
-        # Xử lý lỗi
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": str(e),
-                "details": "Lỗi trong quá trình xử lý ảnh từ base64",
-                "duplicate_characters": {},
-                "duplicates": [],
-                "all_predictions": []
-            }
-        )
+#         # Xử lý lỗi
+#         return JSONResponse(
+#             status_code=500,
+#             content={
+#                 "error": str(e),
+#                 "details": "Lỗi trong quá trình xử lý ảnh từ base64",
+#                 "duplicate_characters": {},
+#                 "duplicates": [],
+#                 "all_predictions": []
+#             }
+#         )
 
 # Đặt các route bảo mật với API key
 @app.post("/secure/process", dependencies=[Depends(get_api_key)])
