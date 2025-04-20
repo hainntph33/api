@@ -799,10 +799,6 @@ fetch('/secure/process_base64?X-API-Key=YOUR_API_KEY_HERE', {
         <ul>
             <li><code>/</code> - Trang chào mừng</li>
             <li><code>/health</code> - Kiểm tra trạng thái API</li>
-            <li><code>/process</code> - Xử lý ảnh từ file upload</li>
-            <li><code>/process_url</code> - Xử lý ảnh từ URL công khai</li>
-            <li><code>/process_base64</code> - Xử lý ảnh từ chuỗi base64 (hỗ trợ cả form và JSON)</li>
-            <li><code>/process_base64_json</code> - Xử lý ảnh từ chuỗi base64 (chỉ hỗ trợ JSON)</li>
             <li><code>/secure/process</code> - Phiên bản bảo mật của /process (yêu cầu API key)</li>
             <li><code>/secure/process_url</code> - Phiên bản bảo mật của /process_url (yêu cầu API key)</li>
             <li><code>/secure/process_base64</code> - Phiên bản bảo mật của /process_base64 (yêu cầu API key)</li>
